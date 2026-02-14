@@ -1,0 +1,23 @@
+# Ignore build artifacts
+bin/
+*.test
+*.out
+
+# Ignore generated protobuf
+*.pb.go
+
+# Ignore certificates
+certs/
+*.pem
+
+# Ignore K8s secrets
+k8s/secrets/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# OS
+.DS_Store
+
