@@ -3,9 +3,6 @@ bin/
 *.test
 *.out
 
-# Ignore generated protobuf
-*.pb.go
-
 # Ignore certificates
 certs/
 *.pem

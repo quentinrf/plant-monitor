@@ -1,0 +1,57 @@
+syntax = "proto3";
+
+package light.v1;
+
+option go_package = "github.com/quentinrf/plant-monitor/services/light-service/pkg/pb";
+
+// LightService provides light monitoring capabilities
+service LightService {
+  // GetCurrentLight returns the most recent light reading
+  rpc GetCurrentLight(GetCurrentLightRequest) returns (GetCurrentLightResponse);
+  
+  // GetHistory returns light readings within a time range
+  rpc GetHistory(GetHistoryRequest) returns (GetHistoryResponse);
+  
+  // RecordReading manually records a light reading (for testing)
+  rpc RecordReading(RecordReadingRequest) returns (RecordReadingResponse);
+}
+
+message GetCurrentLightRequest {
+  // Empty - no parameters needed
+}
+
+message GetCurrentLightResponse {
+  LightReading reading = 1;
+}
+
+message GetHistoryRequest {
+  // Start of time range (Unix timestamp)
+  int64 start_time = 1;
+  
+  // End of time range (Unix timestamp)
+  int64 end_time = 2;
+}
+
+message GetHistoryResponse {
+  repeated LightReading readings = 1;
+  
+  // Statistics
+  double average_lux = 2;
+  double min_lux = 3;
+  double max_lux = 4;
+}
+
+message RecordReadingRequest {
+  double lux = 1;
+}
+
+message RecordReadingResponse {
+  LightReading reading = 1;
+}
+
+message LightReading {
+  int64 id = 1;
+  double lux = 2;
+  int64 timestamp = 3;  // Unix timestamp
+  string category = 4;  // "Low Light", "Medium Light", "High Light"
+}
