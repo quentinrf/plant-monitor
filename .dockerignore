@@ -1,0 +1,27 @@
+# Ignore build artifacts
+bin/
+*.test
+*.out
+
+# Ignore generated protobuf (will regenerate in container if needed)
+# Actually, we want to include these since we already generated them
+# *.pb.go
+
+# Ignore git
+.git/
+.gitignore
+
+# Ignore IDE
+.idea/
+.vscode/
+*.swp
+
+# Ignore OS
+.DS_Store
+
+# Ignore certs
+certs/
+*.pem
+
+# Ignore K8s
+k8s/
