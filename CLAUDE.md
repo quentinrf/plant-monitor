@@ -24,3 +24,14 @@ ask before changing any version pins.
 
 Development branches follow the pattern `claude/<description>-<sessionId>`.
 Always verify the target branch before committing.
+
+## Pull request descriptions
+
+When opening or updating a PR, write a description that:
+- Starts with a short (1–2 sentence) **summary** of the problem being solved and
+  the approach taken — not a list of files changed.
+- Has a **Changes** section with concise bullet points, one per logical change,
+  explaining the *why* not just the *what*.
+- Has a **Testing** section noting how the change was verified (unit tests,
+  manual smoke test with specific env vars, etc.).
+- Stays under ~250 words total. Be direct; omit filler like "this PR updates…".
