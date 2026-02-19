@@ -35,6 +35,9 @@ func (r *Recorder) Start(ctx context.Context) {
 	ticker := time.NewTicker(r.interval)
 	defer ticker.Stop()
 
+	cleanupTicker := time.NewTicker(24 * time.Hour)
+	defer cleanupTicker.Stop()
+
 	// Record immediately on start
 	r.recordOnce(ctx)
 
@@ -42,6 +45,13 @@ func (r *Recorder) Start(ctx context.Context) {
 		select {
 		case <-ticker.C:
 			r.recordOnce(ctx)
+
+		case <-cleanupTicker.C:
+			if err := r.repo.DeleteOldReadings(ctx, 30*24*time.Hour); err != nil {
+				log.Error().Err(err).Msg("failed to delete old readings")
+			} else {
+				log.Info().Msg("deleted readings older than 30 days")
+			}
 
 		case <-ctx.Done():
 			log.Info().Msg("stopping background recorder")
