@@ -12,6 +12,7 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/reflection"
 
 	grpcAdapter "github.com/quentinrf/plant-monitor/services/light-service/internal/adapters/grpc"
@@ -21,6 +22,7 @@ import (
 	"github.com/quentinrf/plant-monitor/services/light-service/internal/domain"
 	"github.com/quentinrf/plant-monitor/services/light-service/internal/ports"
 	"github.com/quentinrf/plant-monitor/services/light-service/pkg/pb"
+	"github.com/quentinrf/plant-monitor/services/light-service/pkg/tlsconfig"
 )
 
 func main() {
@@ -62,8 +64,21 @@ func main() {
 	// Initialize gRPC handler
 	handler := grpcAdapter.NewLightServiceHandler(repo, sensor)
 
+	// Configure TLS if certificates are provided
+	var serverOpts []grpc.ServerOption
+	if config.TLSCert != "" {
+		tlsCfg, err := tlsconfig.LoadServerTLS(config.TLSCert, config.TLSKey, config.TLSCA)
+		if err != nil {
+			log.Fatal().Err(err).Msg("failed to load TLS config")
+		}
+		serverOpts = append(serverOpts, grpc.Creds(credentials.NewTLS(tlsCfg)))
+		log.Info().Msg("mTLS enabled")
+	} else {
+		log.Warn().Msg("TLS_CERT not set — starting without TLS (dev mode only)")
+	}
+
 	// Create gRPC server
-	grpcServer := grpc.NewServer()
+	grpcServer := grpc.NewServer(serverOpts...)
 	pb.RegisterLightServiceServer(grpcServer, handler)
 
 	// Enable gRPC reflection for grpcurl testing
@@ -112,6 +127,9 @@ type Config struct {
 	RepoType       string // "memory" | "sqlite"
 	DBPath         string // SQLite database file path (used when RepoType=sqlite)
 	SensorType     string // "mock" | "gpio"
+	TLSCert        string // path to this service's certificate
+	TLSKey         string // path to this service's private key
+	TLSCA          string // path to the CA certificate
 }
 
 // loadConfig reads configuration from environment variables
@@ -149,5 +167,8 @@ func loadConfig() Config {
 		RepoType:       repoType,
 		DBPath:         dbPath,
 		SensorType:     sensorType,
+		TLSCert:        os.Getenv("TLS_CERT"),
+		TLSKey:         os.Getenv("TLS_KEY"),
+		TLSCA:          os.Getenv("TLS_CA"),
 	}
 }
