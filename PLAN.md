@@ -1,6 +1,6 @@
 # Plant Monitor — Specific Implementation Plan
 
-This document captures the exact steps, file paths, interfaces, and commands needed to go from the current state (light-service complete) to a fully deployed three-service system with mTLS on Kubernetes.
+This document captures the exact steps, file paths, interfaces, and commands needed to complete and deploy a three-service plant monitoring system with mTLS on Kubernetes.
 
 ---
 
@@ -8,13 +8,195 @@ This document captures the exact steps, file paths, interfaces, and commands nee
 
 | Component | Status | Notes |
 |---|---|---|
-| `light-service` | ✅ Complete | Domain, gRPC, SQLite, mock sensor, Docker |
+| `light-service` — domain, ports, adapters | ✅ Done | Models, interfaces, memory/SQLite/mock adapters all implemented |
+| `light-service` — gRPC handler | ✅ Done | All three RPCs implemented |
+| `light-service` — Dockerfile | ✅ Done | Multi-stage build |
+| `light-service` — domain tests | ✅ Done | `reading_test.go` covers model and categorisation |
+| `light-service` — adapter/integration tests | ❌ Missing | No tests for memory, SQLite, gRPC handler, or recorder |
+| `light-service` — configurable adapters | ❌ Missing | `main.go` hard-wires memory repo + mock sensor; no env-var selection |
+| `light-service` — TLS support | ❌ Missing | `grpc.NewServer()` has no TLS options; `TLS_CERT/KEY/CA` not read |
+| `light-service` — data retention | ❌ Missing | `DeleteOldReadings` implemented but never called |
+| `light-service` — boundary bug | ❌ Bug | Memory adapter uses exclusive range bounds; SQLite uses inclusive — inconsistent |
+| `light-service` — proto codegen config | ❌ Missing | No `buf.yaml` / `buf.gen.yaml`; generated files exist but not reproducible |
 | `plant-service` | ❌ Not started | |
 | `dashboard-service` | ❌ Not started | |
 | Makefile / Docker Compose | ❌ Not started | |
 | mTLS certificates | ❌ Not started | |
 | Kubernetes manifests | ❌ Not started | |
 | Raspberry Pi GPIO adapter | ❌ Not started | |
+
+---
+
+## Phase 0 — Finish light-service
+
+**Goal:** Close the known gaps before building on top of it. Nothing downstream should depend on a broken foundation.
+
+### 0a. Fix the range boundary inconsistency
+
+`GetReadingsInRange` uses exclusive bounds in the memory adapter but inclusive bounds in SQLite. Standardise on **inclusive start, exclusive end** (the conventional half-open interval), which matches how time ranges are naturally expressed.
+
+**`internal/adapters/memory/reading_repository.go:64`** — change:
+```go
+// current (exclusive on both ends)
+if reading.Timestamp.After(start) && reading.Timestamp.Before(end) {
+
+// fix (inclusive start, exclusive end)
+if !reading.Timestamp.Before(start) && reading.Timestamp.Before(end) {
+```
+
+**`internal/adapters/sqlite/reading_repository.go:86`** — change query to:
+```sql
+WHERE timestamp >= ? AND timestamp < ?
+```
+
+Update `domain.ReadingRepository` interface comment to document the chosen convention so both adapters stay in sync.
+
+### 0b. Add configurable adapter selection to main.go
+
+Replace the hard-wired `memory` + `mock` instantiation with env-var-driven selection:
+
+| Variable | Values | Default | Purpose |
+|---|---|---|---|
+| `REPO_TYPE` | `memory`, `sqlite` | `memory` | Which repository adapter to use |
+| `DB_PATH` | file path | `./light.db` | SQLite database file (only used when `REPO_TYPE=sqlite`) |
+| `SENSOR_TYPE` | `mock`, `gpio` | `mock` | Which sensor adapter to use (gpio added in Phase 7) |
+
+```go
+// In loadConfig():
+RepoType   string  // "memory" | "sqlite"
+DBPath     string
+SensorType string  // "mock" | "gpio"
+
+// In main():
+var repo domain.ReadingRepository
+switch config.RepoType {
+case "sqlite":
+    r, err := sqlite.NewReadingRepository(config.DBPath)
+    // handle err
+    defer r.Close()
+    repo = r
+default:
+    repo = memory.NewReadingRepository()
+}
+
+var sensor ports.LightSensor
+switch config.SensorType {
+case "gpio":
+    // Phase 7 — placeholder, fatal error for now
+    log.Fatal().Msg("gpio sensor not yet implemented; set SENSOR_TYPE=mock")
+default:
+    sensor = mock.NewFakeSensor(500.0, 100.0)
+}
+```
+
+### 0c. Add TLS configuration to main.go
+
+Read `TLS_CERT`, `TLS_KEY`, `TLS_CA` from the environment. If all three are set, start with mTLS; otherwise start insecure. This is the pattern all three services will follow.
+
+Add to `loadConfig()`:
+```go
+TLSCert string  // path to this service's certificate
+TLSKey  string  // path to this service's private key
+TLSCA   string  // path to the CA certificate
+```
+
+Add to `main()`:
+```go
+var serverOpts []grpc.ServerOption
+if config.TLSCert != "" {
+    tlsCfg, err := tlsconfig.LoadServerTLS(config.TLSCert, config.TLSKey, config.TLSCA)
+    if err != nil {
+        log.Fatal().Err(err).Msg("failed to load TLS config")
+    }
+    serverOpts = append(serverOpts, grpc.Creds(credentials.NewTLS(tlsCfg)))
+    log.Info().Msg("mTLS enabled")
+} else {
+    log.Warn().Msg("TLS_CERT not set — starting without TLS (dev mode only)")
+}
+grpcServer := grpc.NewServer(serverOpts...)
+```
+
+The `tlsconfig` package lives at `services/light-service/pkg/tlsconfig/tlsconfig.go` — it will be duplicated into plant-service and dashboard-service (same code, same package, separate modules). See Phase 4 for the full implementation.
+
+### 0d. Schedule periodic DeleteOldReadings
+
+Add to `Recorder.Start()` in `ports/reader.go` — run cleanup once per day:
+
+```go
+cleanupTicker := time.NewTicker(24 * time.Hour)
+defer cleanupTicker.Stop()
+
+for {
+    select {
+    case <-ticker.C:
+        r.recordOnce(ctx)
+    case <-cleanupTicker.C:
+        if err := r.repo.DeleteOldReadings(ctx, 30*24*time.Hour); err != nil {
+            log.Error().Err(err).Msg("failed to delete old readings")
+        } else {
+            log.Info().Msg("deleted readings older than 30 days")
+        }
+    case <-ctx.Done():
+        return
+    }
+}
+```
+
+### 0e. Add adapter and integration tests
+
+Files to create:
+
+```
+services/light-service/internal/adapters/memory/reading_repository_test.go
+services/light-service/internal/adapters/sqlite/reading_repository_test.go
+services/light-service/internal/adapters/grpc/handler_test.go
+```
+
+**`memory/reading_repository_test.go`** — test the interface contract:
+- `TestSaveAndGetReading` — save a reading, retrieve by ID
+- `TestGetLatestReading_Empty` — returns `ErrReadingNotFound`
+- `TestGetReadingsInRange` — boundary inclusive/exclusive behaviour
+- `TestDeleteOldReadings` — old entries removed, recent ones kept
+
+**`sqlite/reading_repository_test.go`** — same test cases, using `t.TempDir()` for the database file. Verifies parity with the memory adapter.
+
+**`grpc/handler_test.go`** — create a real in-process gRPC server using `net.Pipe()` (no port needed):
+- `TestGetCurrentLight_NoReadings` — triggers sensor read, returns a reading
+- `TestRecordReading_ThenGetCurrent` — records a reading, verifies it comes back
+- `TestGetHistory_TimeRange` — seeds readings, verifies correct range returned
+
+### 0f. Add buf config for reproducible proto generation
+
+```
+services/light-service/buf.yaml
+services/light-service/buf.gen.yaml
+```
+
+```yaml
+# buf.yaml
+version: v2
+modules:
+  - path: api/proto
+```
+
+```yaml
+# buf.gen.yaml
+version: v2
+plugins:
+  - remote: buf.build/protocolbuffers/go
+    out: pkg/pb
+    opt: paths=source_relative
+  - remote: buf.build/grpc/go
+    out: pkg/pb
+    opt: paths=source_relative
+```
+
+**Validation for Phase 0:**
+```bash
+cd services/light-service && go test ./...           # all tests pass
+REPO_TYPE=sqlite DB_PATH=/tmp/test.db go run ./cmd/server  # starts with SQLite
+TLS_CERT=... TLS_KEY=... TLS_CA=... go run ./cmd/server    # starts with mTLS (after Phase 4)
+```
 
 ---
 
@@ -895,14 +1077,15 @@ Verify sensor detected: `i2cdetect -y 1` (should show `0x23`)
 
 This is the recommended sequence to always have a running, demonstrable system:
 
-1. **Makefile + Docker Compose (Phase 1)** — 1 session. Unlocks `make test` and `docker compose up`.
-2. **Plant Service domain + tests (Phase 2a–2c)** — 1 session. Pure Go, no dependencies.
-3. **Plant Service gRPC wiring (Phase 2d–2g)** — 1 session. End-to-end gRPC call chain working.
-4. **Dashboard Service (Phase 3)** — 1 session. Full system visible in browser.
-5. **mTLS (Phase 4)** — 1 session. Cert generation + TLS config in all three services.
-6. **Kubernetes on Minikube (Phase 5)** — 1 session. Portable demo on laptop.
-7. **Raspberry Pi (Phase 7)** — After hardware arrives. Swap mock sensor for GPIO.
-8. **Envoy sidecars (Phase 6)** — Optional polish if time permits.
+1. **Finish light-service (Phase 0)** — Fix boundary bug, add env-var adapter selection, add TLS skeleton, schedule cleanup, add adapter tests, add buf config. Produces a solid, tested foundation.
+2. **Makefile + Docker Compose (Phase 1)** — 1 session. Unlocks `make test` and `docker compose up`.
+3. **Plant Service domain + tests (Phase 2a–2c)** — 1 session. Pure Go, no external dependencies.
+4. **Plant Service gRPC wiring (Phase 2d–2g)** — 1 session. End-to-end gRPC call chain working.
+5. **Dashboard Service (Phase 3)** — 1 session. Full system visible in browser.
+6. **mTLS (Phase 4)** — 1 session. Cert generation + TLS config wired into all three services.
+7. **Kubernetes on Minikube (Phase 5)** — 1 session. Portable demo on laptop.
+8. **Raspberry Pi (Phase 7)** — After hardware arrives. Swap mock sensor for GPIO adapter.
+9. **Envoy sidecars (Phase 6)** — Optional polish if time permits.
 
 ---
 
