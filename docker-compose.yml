@@ -1,0 +1,41 @@
+services:
+  light-service:
+    build: ./services/light-service
+    environment:
+      PORT: "50051"
+      RECORD_INTERVAL: "30s"
+      TLS_CERT: /certs/light-service.crt
+      TLS_KEY: /certs/light-service.key
+      TLS_CA: /certs/ca.crt
+    volumes:
+      - ./certs:/certs:ro
+    ports:
+      - "50051:50051"
+
+  plant-service:
+    build: ./services/plant-service
+    environment:
+      PORT: "50052"
+      LIGHT_SERVICE_ADDR: "light-service:50051"
+      TLS_CERT: /certs/plant-service.crt
+      TLS_KEY: /certs/plant-service.key
+      TLS_CA: /certs/ca.crt
+    volumes:
+      - ./certs:/certs:ro
+    depends_on:
+      - light-service
+
+  dashboard-service:
+    build: ./services/dashboard-service
+    environment:
+      PORT: "8080"
+      PLANT_SERVICE_ADDR: "plant-service:50052"
+      TLS_CERT: /certs/dashboard-service.crt
+      TLS_KEY: /certs/dashboard-service.key
+      TLS_CA: /certs/ca.crt
+    volumes:
+      - ./certs:/certs:ro
+    ports:
+      - "8080:8080"
+    depends_on:
+      - plant-service
