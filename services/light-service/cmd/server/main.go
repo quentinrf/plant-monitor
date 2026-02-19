@@ -17,6 +17,8 @@ import (
 	grpcAdapter "github.com/quentinrf/plant-monitor/services/light-service/internal/adapters/grpc"
 	"github.com/quentinrf/plant-monitor/services/light-service/internal/adapters/memory"
 	"github.com/quentinrf/plant-monitor/services/light-service/internal/adapters/mock"
+	"github.com/quentinrf/plant-monitor/services/light-service/internal/adapters/sqlite"
+	"github.com/quentinrf/plant-monitor/services/light-service/internal/domain"
 	"github.com/quentinrf/plant-monitor/services/light-service/internal/ports"
 	"github.com/quentinrf/plant-monitor/services/light-service/pkg/pb"
 )
@@ -32,15 +34,30 @@ func main() {
 	config := loadConfig()
 
 	// Initialize repository
-	// For now, using in-memory - we'll swap to SQLite on Pi
-	repo := memory.NewReadingRepository()
-	log.Info().Msg("initialized in-memory repository")
+	var repo domain.ReadingRepository
+	switch config.RepoType {
+	case "sqlite":
+		r, err := sqlite.NewReadingRepository(config.DBPath)
+		if err != nil {
+			log.Fatal().Err(err).Str("db_path", config.DBPath).Msg("failed to open SQLite database")
+		}
+		defer r.Close()
+		repo = r
+		log.Info().Str("db_path", config.DBPath).Msg("initialized SQLite repository")
+	default:
+		repo = memory.NewReadingRepository()
+		log.Info().Msg("initialized in-memory repository")
+	}
 
 	// Initialize sensor
-	// For laptop: mock sensor
-	// For Pi: GPIO sensor (we'll add this later)
-	sensor := mock.NewFakeSensor(500.0, 100.0) // 500±100 lux (indoor lighting)
-	log.Info().Msg("initialized mock sensor")
+	var sensor ports.LightSensor
+	switch config.SensorType {
+	case "gpio":
+		log.Fatal().Msg("gpio sensor not yet implemented; set SENSOR_TYPE=mock")
+	default:
+		sensor = mock.NewFakeSensor(500.0, 100.0) // 500±100 lux (indoor lighting)
+		log.Info().Msg("initialized mock sensor")
+	}
 
 	// Initialize gRPC handler
 	handler := grpcAdapter.NewLightServiceHandler(repo, sensor)
@@ -92,6 +109,9 @@ func main() {
 type Config struct {
 	Port           string
 	RecordInterval time.Duration
+	RepoType       string // "memory" | "sqlite"
+	DBPath         string // SQLite database file path (used when RepoType=sqlite)
+	SensorType     string // "mock" | "gpio"
 }
 
 // loadConfig reads configuration from environment variables
@@ -108,8 +128,26 @@ func loadConfig() Config {
 		}
 	}
 
+	repoType := os.Getenv("REPO_TYPE")
+	if repoType == "" {
+		repoType = "memory"
+	}
+
+	dbPath := os.Getenv("DB_PATH")
+	if dbPath == "" {
+		dbPath = "./light.db"
+	}
+
+	sensorType := os.Getenv("SENSOR_TYPE")
+	if sensorType == "" {
+		sensorType = "mock"
+	}
+
 	return Config{
 		Port:           port,
 		RecordInterval: recordInterval,
+		RepoType:       repoType,
+		DBPath:         dbPath,
+		SensorType:     sensorType,
 	}
 }

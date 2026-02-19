@@ -85,7 +85,7 @@ func (r *ReadingRepository) GetReadingsInRange(ctx context.Context, start, end t
 	query := `
 		SELECT id, lux, timestamp 
 		FROM light_readings 
-		WHERE timestamp >= ? AND timestamp <= ?
+		WHERE timestamp >= ? AND timestamp < ?
 		ORDER BY timestamp ASC
 	`
 

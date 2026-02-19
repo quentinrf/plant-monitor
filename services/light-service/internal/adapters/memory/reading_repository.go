@@ -61,7 +61,7 @@ func (r *ReadingRepository) GetReadingsInRange(ctx context.Context, start, end t
 
 	var results []*domain.LightReading
 	for _, reading := range r.readings {
-		if reading.Timestamp.After(start) && reading.Timestamp.Before(end) {
+		if !reading.Timestamp.Before(start) && reading.Timestamp.Before(end) {
 			results = append(results, reading)
 		}
 	}
