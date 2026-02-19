@@ -6,24 +6,47 @@ This document captures the exact steps, file paths, interfaces, and commands nee
 
 ## Current State
 
-| Component | Status | Notes |
+| Phase | Step | Status |
 |---|---|---|
-| `light-service` — domain, ports, adapters | ✅ Done | Models, interfaces, memory/SQLite/mock adapters all implemented |
-| `light-service` — gRPC handler | ✅ Done | All three RPCs implemented |
-| `light-service` — Dockerfile | ✅ Done | Multi-stage build |
-| `light-service` — domain tests | ✅ Done | `reading_test.go` covers model and categorisation |
-| `light-service` — adapter/integration tests | ❌ Missing | No tests for memory, SQLite, gRPC handler, or recorder |
-| `light-service` — configurable adapters | ❌ Missing | `main.go` hard-wires memory repo + mock sensor; no env-var selection |
-| `light-service` — TLS support | ❌ Missing | `grpc.NewServer()` has no TLS options; `TLS_CERT/KEY/CA` not read |
-| `light-service` — data retention | ❌ Missing | `DeleteOldReadings` implemented but never called |
-| `light-service` — boundary bug | ❌ Bug | Memory adapter uses exclusive range bounds; SQLite uses inclusive — inconsistent |
-| `light-service` — proto codegen config | ❌ Missing | No `buf.yaml` / `buf.gen.yaml`; generated files exist but not reproducible |
-| `plant-service` | ❌ Not started | |
-| `dashboard-service` | ❌ Not started | |
-| Makefile / Docker Compose | ❌ Not started | |
-| mTLS certificates | ❌ Not started | |
-| Kubernetes manifests | ❌ Not started | |
-| Raspberry Pi GPIO adapter | ❌ Not started | |
+| **0 — Finish light-service** | Domain, ports, adapter implementations | ✅ Done |
+| | gRPC handler (all three RPCs) | ✅ Done |
+| | Dockerfile (multi-stage build) | ✅ Done |
+| | Domain tests (`reading_test.go`) | ✅ Done |
+| | 0a. Fix range boundary inconsistency (memory vs SQLite) | ❌ Bug |
+| | 0b. Configurable adapter selection via env vars (`REPO_TYPE`, `SENSOR_TYPE`) | ❌ Missing |
+| | 0c. TLS configuration in `main.go` | ❌ Missing |
+| | 0d. Schedule periodic `DeleteOldReadings` in recorder | ❌ Missing |
+| | 0e. Adapter and integration tests (memory, SQLite, gRPC handler) | ❌ Missing |
+| | 0f. `buf.yaml` / `buf.gen.yaml` for reproducible proto generation | ❌ Missing |
+| **1 — Build infrastructure** | `Makefile` | ❌ Not started |
+| | `docker-compose.yml` | ❌ Not started |
+| **2 — Plant service** | 2a. `plant.proto` definition | ❌ Not started |
+| | 2b. Domain layer (`analysis.go` + tests) | ❌ Not started |
+| | 2c. `LightClient` port interface | ❌ Not started |
+| | 2d. gRPC client adapter → light-service | ❌ Not started |
+| | 2e. gRPC server handler | ❌ Not started |
+| | 2f. `main.go` wiring | ❌ Not started |
+| | 2g. Dockerfile | ❌ Not started |
+| **3 — Dashboard service** | 3a. HTTP handler (`/`, `/api/status`, `/api/history`) | ❌ Not started |
+| | 3b. gRPC client adapter → plant-service | ❌ Not started |
+| | 3c. Web UI (`index.html` with Chart.js) | ❌ Not started |
+| | 3d. `main.go` wiring | ❌ Not started |
+| | 3e. Dockerfile | ❌ Not started |
+| **4 — mTLS** | `scripts/gen-certs.sh` | ❌ Not started |
+| | `pkg/tlsconfig` package (per service) | ❌ Not started |
+| | mTLS wired into all three services | ❌ Not started |
+| **5 — Kubernetes (Minikube)** | Namespace manifest | ❌ Not started |
+| | TLS secret | ❌ Not started |
+| | light-service manifests (Deployment, Service, ConfigMap) | ❌ Not started |
+| | plant-service manifests (Deployment, Service, ConfigMap) | ❌ Not started |
+| | dashboard-service manifests (Deployment, Service, ConfigMap) | ❌ Not started |
+| **6 — Envoy sidecars** *(optional)* | Envoy ConfigMaps (one per service) | ❌ Not started |
+| | Sidecar containers added to Deployments | ❌ Not started |
+| **7 — Raspberry Pi / K3s** | 7a. GPIO adapter (`bh1750.go` via periph.io) | ❌ Not started |
+| | 7b. Build-tag separation (gpio vs mock) | ❌ Not started |
+| | 7c. Cross-compilation for ARM64 | ❌ Not started |
+| | 7d. K3s deployment | ❌ Not started |
+| | 7e. Physical wiring (BH1750 → Pi GPIO) | ❌ Not started |
 
 ---
 
