@@ -14,7 +14,8 @@ type ReadingRepository interface {
 	// GetReading retrieves a specific reading by ID
 	GetReading(ctx context.Context, id int64) (*LightReading, error)
 
-	// GetReadingsInRange retrieves all readings within time range
+	// GetReadingsInRange retrieves all readings within time range.
+	// Uses a half-open interval: inclusive start, exclusive end [start, end).
 	GetReadingsInRange(ctx context.Context, start, end time.Time) ([]*LightReading, error)
 
 	// GetLatestReading retrieves the most recent reading

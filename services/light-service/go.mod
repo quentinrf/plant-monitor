@@ -1,6 +1,6 @@
 module github.com/quentinrf/plant-monitor/services/light-service
 
-go 1.25.0
+go 1.24.7
 
 require (
 	github.com/mattn/go-colorable v0.1.13 // indirect
