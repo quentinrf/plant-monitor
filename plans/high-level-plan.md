@@ -14,12 +14,12 @@ This document captures the exact steps, file paths, interfaces, and commands nee
 | | Domain tests (`reading_test.go`) | ✅ Done |
 | | 0a. Fix range boundary inconsistency (memory vs SQLite) | ✅ Done |
 | | 0b. Configurable adapter selection via env vars (`REPO_TYPE`, `SENSOR_TYPE`) | ✅ Done |
-| | 0c. TLS configuration in `main.go` | ❌ Missing |
-| | 0d. Schedule periodic `DeleteOldReadings` in recorder | ❌ Missing |
-| | 0e. Adapter and integration tests (memory, SQLite, gRPC handler) | ❌ Missing |
-| | 0f. `buf.yaml` / `buf.gen.yaml` for reproducible proto generation | ❌ Missing |
-| **1 — Build infrastructure** | `Makefile` | ❌ Not started |
-| | `docker-compose.yml` | ❌ Not started |
+| | 0c. TLS configuration in `main.go` | ✅ Done |
+| | 0d. Schedule periodic `DeleteOldReadings` in recorder | ✅ Done |
+| | 0e. Adapter and integration tests (memory, SQLite, gRPC handler) | ✅ Done |
+| | 0f. `buf.yaml` / `buf.gen.yaml` for reproducible proto generation | ✅ Done |
+| **1 — Build infrastructure** | `Makefile` | ✅ Done |
+| | `docker-compose.yml` | ✅ Done |
 | **2 — Plant service** | 2a. `plant.proto` definition | ❌ Not started |
 | | 2b. Domain layer (`analysis.go` + tests) | ❌ Not started |
 | | 2c. `LightClient` port interface | ❌ Not started |
