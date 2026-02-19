@@ -12,8 +12,8 @@ This document captures the exact steps, file paths, interfaces, and commands nee
 | | gRPC handler (all three RPCs) | ✅ Done |
 | | Dockerfile (multi-stage build) | ✅ Done |
 | | Domain tests (`reading_test.go`) | ✅ Done |
-| | 0a. Fix range boundary inconsistency (memory vs SQLite) | ❌ Bug |
-| | 0b. Configurable adapter selection via env vars (`REPO_TYPE`, `SENSOR_TYPE`) | ❌ Missing |
+| | 0a. Fix range boundary inconsistency (memory vs SQLite) | ✅ Done |
+| | 0b. Configurable adapter selection via env vars (`REPO_TYPE`, `SENSOR_TYPE`) | ✅ Done |
 | | 0c. TLS configuration in `main.go` | ❌ Missing |
 | | 0d. Schedule periodic `DeleteOldReadings` in recorder | ❌ Missing |
 | | 0e. Adapter and integration tests (memory, SQLite, gRPC handler) | ❌ Missing |
