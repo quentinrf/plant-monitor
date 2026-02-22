@@ -23,10 +23,10 @@ This document captures the exact steps, file paths, interfaces, and commands nee
 | **2 — Plant service** | 2a. `plant.proto` definition | ✅ Done |
 | | 2b. Domain layer (`analysis.go` + tests) | ✅ Done |
 | | 2c. `LightClient` port interface | ✅ Done |
-| | 2d. gRPC client adapter → light-service | ❌ Not started |
-| | 2e. gRPC server handler | ❌ Not started |
-| | 2f. `main.go` wiring | ❌ Not started |
-| | 2g. Dockerfile | ❌ Not started |
+| | 2d. gRPC client adapter → light-service | ✅ Done |
+| | 2e. gRPC server handler | ✅ Done |
+| | 2f. `main.go` wiring | ✅ Done |
+| | 2g. Dockerfile | ✅ Done |
 | **3 — Dashboard service** | 3a. HTTP handler (`/`, `/api/status`, `/api/history`) | ❌ Not started |
 | | 3b. gRPC client adapter → plant-service | ❌ Not started |
 | | 3c. Web UI (`index.html` with Chart.js) | ❌ Not started |
