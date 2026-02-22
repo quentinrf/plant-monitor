@@ -1,0 +1,40 @@
+syntax = "proto3";
+
+package plant.v1;
+
+option go_package = "github.com/quentinrf/plant-monitor/services/plant-service/pkg/pb";
+
+service PlantService {
+  rpc GetPlantStatus(GetPlantStatusRequest) returns (GetPlantStatusResponse);
+  rpc GetHistory(GetHistoryRequest)         returns (GetHistoryResponse);
+}
+
+message GetPlantStatusRequest {}
+
+message GetPlantStatusResponse {
+  PlantStatus status = 1;
+}
+
+message GetHistoryRequest {
+  int64 start_time = 1;
+  int64 end_time   = 2;
+}
+
+message GetHistoryResponse {
+  repeated HistoryPoint points = 1;
+  string                trend  = 2; // "stable" | "brightening" | "darkening"
+}
+
+message PlantStatus {
+  string recommendation = 1; // e.g. "Low Light — most houseplants will thrive here"
+  string light_category = 2; // "Low Light" | "Medium Light" | "High Light"
+  double current_lux    = 3;
+  string trend          = 4;
+  int64  timestamp      = 5;
+}
+
+message HistoryPoint {
+  int64  timestamp = 1;
+  double lux       = 2;
+  string category  = 3;
+}

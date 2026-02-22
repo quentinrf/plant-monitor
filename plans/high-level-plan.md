@@ -20,9 +20,9 @@ This document captures the exact steps, file paths, interfaces, and commands nee
 | | 0f. `buf.yaml` / `buf.gen.yaml` for reproducible proto generation | ✅ Done |
 | **1 — Build infrastructure** | `Makefile` | ✅ Done |
 | | `docker-compose.yml` | ✅ Done |
-| **2 — Plant service** | 2a. `plant.proto` definition | ❌ Not started |
-| | 2b. Domain layer (`analysis.go` + tests) | ❌ Not started |
-| | 2c. `LightClient` port interface | ❌ Not started |
+| **2 — Plant service** | 2a. `plant.proto` definition | ✅ Done |
+| | 2b. Domain layer (`analysis.go` + tests) | ✅ Done |
+| | 2c. `LightClient` port interface | ✅ Done |
 | | 2d. gRPC client adapter → light-service | ❌ Not started |
 | | 2e. gRPC server handler | ❌ Not started |
 | | 2f. `main.go` wiring | ❌ Not started |
