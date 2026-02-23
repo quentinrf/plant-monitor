@@ -32,18 +32,18 @@ This document captures the exact steps, file paths, interfaces, and commands nee
 | | 3c. Web UI (`index.html` with Chart.js) | ❌ Not started |
 | | 3d. `main.go` wiring | ❌ Not started |
 | | 3e. Dockerfile | ❌ Not started |
-| **4 — mTLS** | `scripts/gen-certs.sh` | ❌ Not started |
-| | `pkg/tlsconfig` package (per service) | ❌ Not started |
-| | mTLS wired into all three services | ❌ Not started |
-| **5 — Kubernetes (Minikube)** | Namespace manifest | ❌ Not started |
-| | TLS secret | ❌ Not started |
-| | light-service manifests (Deployment, Service, ConfigMap) | ❌ Not started |
-| | plant-service manifests (Deployment, Service, ConfigMap) | ❌ Not started |
-| | dashboard-service manifests (Deployment, Service, ConfigMap) | ❌ Not started |
+| **4 — mTLS** | `scripts/gen-certs.sh` | ✅ Done |
+| | `pkg/tlsconfig` package (per service) | ✅ Done |
+| | mTLS wired into all three services | ❌ Not started (pending dashboard-service) |
+| **5 — Kubernetes (Minikube)** | Namespace manifest | ✅ Done |
+| | TLS secret | ❌ Not started (created by `make k8s-certs` — gitignored) |
+| | light-service manifests (Deployment, Service, ConfigMap) | ✅ Done |
+| | plant-service manifests (Deployment, Service, ConfigMap) | ✅ Done |
+| | dashboard-service manifests (Deployment, Service, ConfigMap) | ❌ Not started (pending dashboard-service) |
 | **6 — Envoy sidecars** *(optional)* | Envoy ConfigMaps (one per service) | ❌ Not started |
 | | Sidecar containers added to Deployments | ❌ Not started |
-| **7 — Raspberry Pi / K3s** | 7a. GPIO adapter (`bh1750.go` via periph.io) | ❌ Not started |
-| | 7b. Build-tag separation (gpio vs mock) | ❌ Not started |
+| **7 — Raspberry Pi / K3s** | 7a. GPIO adapter (`bh1750.go` via periph.io) | ✅ Done |
+| | 7b. Build-tag separation (gpio vs mock) | ✅ Done |
 | | 7c. Cross-compilation for ARM64 | ❌ Not started |
 | | 7d. K3s deployment | ❌ Not started |
 | | 7e. Physical wiring (BH1750 → Pi GPIO) | ❌ Not started |

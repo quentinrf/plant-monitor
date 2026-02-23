@@ -17,7 +17,6 @@ import (
 
 	grpcAdapter "github.com/quentinrf/plant-monitor/services/light-service/internal/adapters/grpc"
 	"github.com/quentinrf/plant-monitor/services/light-service/internal/adapters/memory"
-	"github.com/quentinrf/plant-monitor/services/light-service/internal/adapters/mock"
 	"github.com/quentinrf/plant-monitor/services/light-service/internal/adapters/sqlite"
 	"github.com/quentinrf/plant-monitor/services/light-service/internal/domain"
 	"github.com/quentinrf/plant-monitor/services/light-service/internal/ports"
@@ -51,15 +50,13 @@ func main() {
 		log.Info().Msg("initialized in-memory repository")
 	}
 
-	// Initialize sensor
-	var sensor ports.LightSensor
-	switch config.SensorType {
-	case "gpio":
-		log.Fatal().Msg("gpio sensor not yet implemented; set SENSOR_TYPE=mock")
-	default:
-		sensor = mock.NewFakeSensor(500.0, 100.0) // 500±100 lux (indoor lighting)
-		log.Info().Msg("initialized mock sensor")
+	// Initialize sensor (platform-specific: see sensor_other.go / sensor_gpio.go)
+	sensor, err := newSensor(config.SensorType)
+	if err != nil {
+		log.Fatal().Err(err).Str("sensor_type", config.SensorType).Msg("failed to initialize sensor")
 	}
+	defer sensor.Close()
+	log.Info().Str("sensor_type", config.SensorType).Msg("initialized sensor")
 
 	// Initialize gRPC handler
 	handler := grpcAdapter.NewLightServiceHandler(repo, sensor)
