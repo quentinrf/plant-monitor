@@ -38,6 +38,7 @@ certs:
 
 ## k8s-certs: Create TLS secret in Kubernetes from generated certs
 k8s-certs:
+	mkdir -p k8s/secrets
 	kubectl create secret generic tls-certs -n plant-monitor \
 		--from-file=ca.crt=certs/ca.crt \
 		--from-file=light-service.crt=certs/light-service.crt \
