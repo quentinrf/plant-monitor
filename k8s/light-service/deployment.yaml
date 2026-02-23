@@ -1,0 +1,66 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: light-service
+  namespace: plant-monitor
+  labels:
+    app: light-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: light-service
+  template:
+    metadata:
+      labels:
+        app: light-service
+    spec:
+      containers:
+        - name: light-service
+          image: plant-monitor/light-service:latest
+          imagePullPolicy: Never   # use local Minikube image registry
+          ports:
+            - containerPort: 50051
+              name: grpc
+          env:
+            - name: PORT
+              value: "50051"
+            - name: RECORD_INTERVAL
+              valueFrom:
+                configMapKeyRef:
+                  name: light-service-config
+                  key: RECORD_INTERVAL
+            - name: REPO_TYPE
+              valueFrom:
+                configMapKeyRef:
+                  name: light-service-config
+                  key: REPO_TYPE
+            - name: SENSOR_TYPE
+              valueFrom:
+                configMapKeyRef:
+                  name: light-service-config
+                  key: SENSOR_TYPE
+            - name: TLS_CERT
+              value: /certs/light-service.crt
+            - name: TLS_KEY
+              value: /certs/light-service.key
+            - name: TLS_CA
+              value: /certs/ca.crt
+          volumeMounts:
+            - name: tls-certs
+              mountPath: /certs
+              readOnly: true
+          readinessProbe:
+            exec:
+              command: ["/bin/grpc_health_probe", "-addr=:50051"]
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            exec:
+              command: ["/bin/grpc_health_probe", "-addr=:50051"]
+            initialDelaySeconds: 15
+            periodSeconds: 20
+      volumes:
+        - name: tls-certs
+          secret:
+            secretName: tls-certs

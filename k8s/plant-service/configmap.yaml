@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: plant-service-config
+  namespace: plant-monitor
+data:
+  LIGHT_SERVICE_ADDR: "light-service:50051"

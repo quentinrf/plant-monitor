@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: light-service-config
+  namespace: plant-monitor
+data:
+  RECORD_INTERVAL: "30s"
+  REPO_TYPE: "memory"
+  SENSOR_TYPE: "mock"

@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: plant-service
+  namespace: plant-monitor
+  labels:
+    app: plant-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: plant-service
+  template:
+    metadata:
+      labels:
+        app: plant-service
+    spec:
+      containers:
+        - name: plant-service
+          image: plant-monitor/plant-service:latest
+          imagePullPolicy: Never   # use local Minikube image registry
+          ports:
+            - containerPort: 50052
+              name: grpc
+          env:
+            - name: PORT
+              value: "50052"
+            - name: LIGHT_SERVICE_ADDR
+              valueFrom:
+                configMapKeyRef:
+                  name: plant-service-config
+                  key: LIGHT_SERVICE_ADDR
+            - name: TLS_CERT
+              value: /certs/plant-service.crt
+            - name: TLS_KEY
+              value: /certs/plant-service.key
+            - name: TLS_CA
+              value: /certs/ca.crt
+          volumeMounts:
+            - name: tls-certs
+              mountPath: /certs
+              readOnly: true
+          readinessProbe:
+            exec:
+              command: ["/bin/grpc_health_probe", "-addr=:50052"]
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            exec:
+              command: ["/bin/grpc_health_probe", "-addr=:50052"]
+            initialDelaySeconds: 15
+            periodSeconds: 20
+      volumes:
+        - name: tls-certs
+          secret:
+            secretName: tls-certs

@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: light-service
+  namespace: plant-monitor
+  labels:
+    app: light-service
+spec:
+  selector:
+    app: light-service
+  ports:
+    - name: grpc
+      port: 50051
+      targetPort: 50051
+  type: ClusterIP

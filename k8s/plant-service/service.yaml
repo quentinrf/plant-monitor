@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: plant-service
+  namespace: plant-monitor
+  labels:
+    app: plant-service
+spec:
+  selector:
+    app: plant-service
+  ports:
+    - name: grpc
+      port: 50052
+      targetPort: 50052
+  type: ClusterIP
